@@ -19,7 +19,7 @@ server.use(cors({ credentials: true, origin: '*' }));
 connectDB();
 
 /* ROUTES */
-const BASE_PREFIX = process.env.BASE_PREFIX;
+const BASE_PREFIX = process.env.BASE_PREFIX || '/api';
 server.use(BASE_PREFIX, roleRoutes);
 server.use(BASE_PREFIX, authRoutes);
 server.use(BASE_PREFIX, userRoutes);

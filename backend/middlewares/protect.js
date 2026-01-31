@@ -2,7 +2,7 @@ const User = require('../models/user');
 const ErrorResponse = require('../utils/errorResponse');
 const jwt = require('jsonwebtoken');
 
-const auth = async (req, res, next) => {
+const protect = async (req, res, next) => {
   let token;
   const key = process.env.SECRET;
 
@@ -14,26 +14,27 @@ const auth = async (req, res, next) => {
   }
 
   if (!token) {
-    const message = 'No authorization token was found in the request';
-    return next(new ErrorResponse(404, message));
+    return next(
+      new ErrorResponse(401, 'No authorization token was found in the request')
+    );
   }
 
   try {
     const payload = jwt.verify(token, key);
 
-    let user = await User.findById(payload.id).populate('role');
+    const user = await User.findById(payload.id).populate('role');
 
     if (!user) {
-      const message = 'You are not logged in as a valid user. Login again.';
-      return next(new ErrorResponse(401, message));
+      return next(
+        new ErrorResponse(401, 'You are not logged in as a valid user')
+      );
     }
 
     req.user = user;
+    next(); // ✅ only once
   } catch (error) {
     next(error);
   }
-
-  next();
 };
 
-module.exports = auth;
+module.exports = protect;

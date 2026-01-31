@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const bcryptjs = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+
 const { Schema } = mongoose;
 const { ObjectId } = mongoose.Types;
 
@@ -18,7 +19,7 @@ const userSchema = new Schema(
       minLength: 2,
       maxLength: 256,
       trim: true,
-      required: [true, 'email can not be empty!'],
+      required: [true, 'Email can not be empty!'],
       unique: true,
     },
     role: {
@@ -40,33 +41,42 @@ const userSchema = new Schema(
   { timestamps: true }
 );
 
-userSchema.pre('save', async function (next) {
-  if (!this.isModified('password')) return next();
-  const SALT = process.env.SALT;
+/**
+ * 🔐 Hash password before save
+ * IMPORTANT:
+ * - Do NOT use next()
+ * - Works for save(), insertMany(), seed
+ */
+userSchema.pre('save', async function () {
+  if (!this.isModified('password')) return;
 
-  const salt = await bcryptjs.genSalt(parseInt(SALT));
+  const SALT = parseInt(process.env.SALT, 10) || 10;
+  const salt = await bcryptjs.genSalt(SALT);
   this.password = await bcryptjs.hash(this.password, salt);
-  next();
 });
 
+/**
+ * 🔑 Compare password
+ */
 userSchema.methods.matchPassword = async function (password) {
-  return await bcryptjs.compare(password, this.password);
+  return bcryptjs.compare(password, this.password);
 };
 
+/**
+ * 🎟️ Generate JWT token
+ */
 userSchema.methods.generateAuthToken = function () {
   const SECRET = process.env.SECRET;
+
   const payload = {
     id: this._id,
     name: this.name,
     email: this.email,
-    role: this.role.roleId,
+    role: this.role, // ObjectId (safe, no populate needed)
   };
 
-  const token = jwt.sign(payload, SECRET);
-
-  return token;
+  return jwt.sign(payload, SECRET, { expiresIn: '1d' });
 };
 
 const User = mongoose.model('User', userSchema);
-
 module.exports = User;

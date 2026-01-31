@@ -25,7 +25,7 @@ const dataUsers = [
     _id: '63e231ecead95df793de72a9',
     name: 'Manu',
     email: 'manu@email.com',
-    password: '123',
+    password: 'Pass123',
     role: '63e21ac060fbc9e5a763c5e1',
   },
   {
@@ -1509,27 +1509,50 @@ const dataTasks = [
   },
 ];
 
+const bcryptjs = require('bcryptjs');
+
 const seedDatabase = async () => {
-  await connectDB();
+  try {
+    console.log('⏳ Connecting to MongoDB...');
+    await connectDB();
 
-  /* DELETION OF EXITING RECORDS */
-  await Role.deleteMany({});
-  await User.deleteMany({});
-  await Timesheet.deleteMany({});
-  await Task.deleteMany({});
+    console.log('🧹 Clearing existing data...');
+    await Promise.all([
+      Role.deleteMany({}),
+      User.deleteMany({}),
+      Timesheet.deleteMany({}),
+      Task.deleteMany({}),
+    ]);
 
-  /* INSERTION OF MOCK RECORDS */
-  dataUsers.forEach(async (userData) => {
-    const user = new User(userData);
-    await user.save();
-  });
+    console.log('📥 Inserting roles...');
+    await Role.insertMany(dataRoles);
 
-  await Role.insertMany(dataRoles);
-  await Task.insertMany(dataTasks);
-  await Timesheet.insertMany(dataTimesheets);
+    console.log('🔐 Hashing user passwords...');
+    for (const user of dataUsers) {
+      const salt = await bcryptjs.genSalt(
+        parseInt(process.env.SALT, 10) || 10
+      );
+      user.password = await bcryptjs.hash(user.password, salt);
+    }
 
-  console.info('Insertion of data has been successful!');
-  process.exit(1);
+    console.log('📥 Inserting users...');
+    await User.insertMany(dataUsers);
+
+    console.log('📥 Inserting tasks...');
+    await Task.insertMany(dataTasks);
+
+    console.log('📥 Inserting timesheets...');
+    await Timesheet.insertMany(dataTimesheets);
+
+    console.log('✅ DATABASE SEED COMPLETED SUCCESSFULLY');
+    process.exit(0);
+  } catch (error) {
+    console.error('❌ SEED FAILED:', error);
+    process.exit(1);
+  }
 };
 
 seedDatabase();
+
+
+

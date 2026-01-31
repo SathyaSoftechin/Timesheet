@@ -2,18 +2,24 @@ const mongoose = require('mongoose');
 
 const connectDB = async () => {
   const URI = process.env.DB_CONNECTION_STRING;
-  const options = {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-    dbName: process.env.DB_NAME,
-  };
+
+  if (!URI) {
+    console.error('❌ DB_CONNECTION_STRING is missing in .env');
+    process.exit(1);
+  }
 
   try {
-    mongoose.set('strictQuery', true);
-    await mongoose.connect(URI, options);
-    console.log('SUCCESSFULLY CONNECTED TO DATABASE');
+    console.log('⏳ Connecting to MongoDB...');
+    
+    await mongoose.connect(URI, {
+      serverSelectionTimeoutMS: 5000, // fail fast
+    });
+
+    console.log('✅ SUCCESSFULLY CONNECTED TO DATABASE');
   } catch (error) {
-    console.log('CONNECTION TO DATABASE FAILED!', error);
+    console.error('❌ CONNECTION TO DATABASE FAILED!');
+    console.error(error.message);
+    process.exit(1);
   }
 };
 

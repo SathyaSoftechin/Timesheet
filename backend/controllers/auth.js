@@ -3,39 +3,47 @@ const asyncHandler = require('../middlewares/asyncHandler');
 const ErrorResponse = require('../utils/errorResponse');
 
 /*
- * @route   /login
+ * @route   /api/login
  * @method  POST
  * @access  Public
- * @desc    Login for users.
  */
 module.exports.login = asyncHandler(async (req, res, next) => {
-  const { email, password } = { ...req.body };
+  const { email, password } = req.body;
 
+  // 1️⃣ Validate input
   if (!email || !password) {
-    const message = 'Email and password both are required!';
-    return next(new ErrorResponse(401, message));
+    return next(
+      new ErrorResponse(400, 'Email and password both are required!')
+    );
   }
 
+  // 2️⃣ Find user + populate role
   const user = await User.findOne({ email }).populate({
     path: 'role',
     select: 'roleId roleName',
   });
 
-  if (!user)
-    return next(new ErrorResponse(404, 'User not found with the given email!'));
+  // 3️⃣ Invalid credentials (DO NOT reveal which one failed)
+  if (!user || !(await user.matchPassword(password))) {
+    return next(
+      new ErrorResponse(400, 'Invalid email or password')
+    );
+  }
 
-  if (!(await user.matchPassword(password)))
-    return next(new ErrorResponse(400, 'You entered wrong password'));
-
+  // 4️⃣ Generate token
   const token = user.generateAuthToken();
 
-  const userData = { ...user._doc };
-  delete userData.password;
+  // 5️⃣ Prepare response
+  const userData = {
+    _id: user._id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    reportsTo: user.reportsTo,
+  };
 
-  res.header('x-auth-token', token).json({
-    success: true,
-    status: 200,
-    token,
+  res.status(200).json({
     ...userData,
+    token,
   });
 });
