@@ -1,21 +1,37 @@
 const Role = require('../models/role');
 const asyncHandler = require('../middlewares/asyncHandler');
+const ErrorResponse = require('../utils/errorResponse');
 
 /*
- * @route   /role
- * @method  POST
+ * @route   POST /role
  * @access  Admin
- * @desc    Create a user role in the DB.
+ * @desc    Create a user role (only once)
  */
 module.exports.createRole = asyncHandler(async (req, res, next) => {
-  const rolePayload = { ...req.body };
+  const { roleId, roleName } = req.body;
 
-  const role = new Role(rolePayload);
-  await role.save();
+  // 1️⃣ Validate input
+  if (roleId === undefined || !roleName) {
+    return next(new ErrorResponse(400, 'roleId and roleName are required'));
+  }
 
-  res.json({
-    status: 201,
-    message: 'The role has been created',
+  // 2️⃣ Check duplication
+  const existingRole = await Role.findOne({
+    $or: [{ roleId }, { roleName }],
+  });
+
+  if (existingRole) {
+    return next(
+      new ErrorResponse(409, 'Role already exists')
+    );
+  }
+
+  // 3️⃣ Create role
+  const role = await Role.create({ roleId, roleName });
+
+  res.status(201).json({
+    success: true,
+    message: 'Role created successfully',
     role,
   });
 });

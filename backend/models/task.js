@@ -7,38 +7,53 @@ const taskSchema = new Schema(
     timesheet: {
       type: ObjectId,
       ref: 'Timesheet',
-      required: [true, 'Timesheet is required for this task!'],
+      required: true,
     },
+
+    assignedBy: {
+      type: ObjectId,
+      ref: 'User',
+      required: true,
+    },
+
     hour: {
       type: Number,
       min: 0,
       max: 23,
-      required: [true, 'Please provide hour value'],
+      required: true,
     },
+
     minute: {
       type: Number,
       min: 0,
       max: 59,
       default: 0,
     },
+
     description: {
       type: String,
-      minLength: 2,
-      maxLength: 2048,
+      required: true,
       trim: true,
-      required: [true, 'Description is required!'],
     },
+
     remarks: {
       type: String,
-      minLength: 2,
-      maxLength: 2048,
+      required: true,
       trim: true,
-      required: [true, 'Remarks can not be empty!'],
+    },
+
+    status: {
+      type: String,
+      enum: ['pending', 'completed'],
+      default: 'pending',
+    },
+
+    completedAt: {
+      type: Date,
+      default: null,
     },
   },
   { timestamps: true }
 );
 
-const Task = mongoose.model('Task', taskSchema);
-
-module.exports = Task;
+module.exports = mongoose.model('Task', taskSchema);

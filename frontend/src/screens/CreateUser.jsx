@@ -63,10 +63,20 @@ const CreateUser = () => {
     }
   }, [data]);
 
+  // useEffect(() => {
+  //   const isAdmin = user?.role.roleId === 0;
+  //   if (!isAdmin) navigate('/');
+  // }, []);
   useEffect(() => {
-    const isAdmin = user?.role.roleId === 0;
-    if (!isAdmin) navigate('/');
-  }, []);
+  const roleId = user?.role?.roleId;
+
+  const isAdminOrManager = roleId === 0 || roleId === 1;
+
+  if (!isAdminOrManager) {
+    navigate('/');
+  }
+}, [user, navigate]);
+
 
   const onSubmit = (data) => {
     if (!data.reportsTo) delete data.reportsTo;

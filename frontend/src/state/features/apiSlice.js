@@ -1,126 +1,22 @@
-// import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
-
-// export const apiSlice = createApi({
-//   baseQuery: fetchBaseQuery({
-//     baseUrl: import.meta.env.VITE_BASE_URL,
-//     prepareHeaders: (headers, { getState }) => {
-//       const userLogin = getState().auth.userLogin;
-//       const isLoggedIn = userLogin.isLoggedIn;
-//       const token = userLogin?.user?.token;
-
-//       if (isLoggedIn) headers.set('authorization', `Bearer ${token}`);
-
-//       return headers;
-//     },
-//   }),
-//   reducerPath: 'timesheetApi',
-//   tagTypes: [
-//     'Login',
-//     'CreateUser',
-//     'CreateTimesheet',
-//     'GetMyTimesheets',
-//     'FindMyTimesheets',
-//     'GetTimesheetDetails',
-//     'EmployeesTimesheets',
-//     'AddTaskToTimesheet',
-//     'RateTimesheet',
-//   ],
-//   endpoints: (build) => ({
-//     loginUser: build.mutation({
-//       query: (payload) => ({
-//         url: '/login',
-//         method: 'POST',
-//         body: payload,
-//       }),
-//       providesTags: ['Login'],
-//     }),
-
-//     createUser: build.mutation({
-//       query: (payload) => ({
-//         url: '/create-user',
-//         method: 'POST',
-//         body: payload,
-//       }),
-//       providesTags: ['CreateUser'],
-//     }),
-
-//     createTimesheet: build.mutation({
-//       query: (payload) => ({
-//         url: '/timesheet',
-//         method: 'POST',
-//         body: payload,
-//       }),
-//       providesTags: ['CreateTimesheet'],
-//     }),
-
-//     getMyTimesheets: build.query({
-//       query: () => '/timesheets',
-//       providesTags: ['GetMyTimesheets'],
-//     }),
-
-//     findMyTimesheets: build.mutation({
-//       query: (payload) => ({
-//         url: '/timesheets',
-//         method: 'POST',
-//         body: payload,
-//       }),
-//       providesTags: ['FindMyTimesheets'],
-//     }),
-
-//     getTimesheetDetails: build.query({
-//       query: (id) => `/timesheet/${id}`,
-//       providesTags: ['GetTimesheetDetails'],
-//     }),
-
-//     getEmployeesTimesheets: build.query({
-//       query: () => '/employees-timesheets',
-//       providesTags: ['EmployeesTimesheets'],
-//     }),
-
-//     addTaskToTimesheet: build.mutation({
-//       query: (payload) => ({
-//         url: '/task',
-//         method: 'POST',
-//         body: payload,
-//       }),
-//       providesTags: ['AddTaskToTimesheet'],
-//     }),
-
-//     rateTimesheet: build.mutation({
-//       query: (payload) => ({
-//         url: `/rate-timesheet/${payload.timesheetId}`,
-//         method: 'POST',
-//         body: payload,
-//       }),
-//       providesTags: ['RateTimesheet'],
-//     }),
-//   }),
-// });
-
-// export const {
-//   useLoginUserMutation,
-//   useCreateUserMutation,
-//   useCreateTimesheetMutation,
-//   useGetMyTimesheetsQuery,
-//   useFindMyTimesheetsMutation,
-//   useGetTimesheetDetailsQuery,
-//   useGetEmployeesTimesheetsQuery,
-//   useAddTaskToTimesheetMutation,
-//   useRateTimesheetMutation,
-// } = apiSlice;
 
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
+import auth from '../../services/auth';
 
 export const apiSlice = createApi({
   reducerPath: 'timesheetApi',
+
   baseQuery: fetchBaseQuery({
     baseUrl: import.meta.env.VITE_BASE_URL,
-    prepareHeaders: (headers, { getState }) => {
-      const token = getState().auth.user?.token;
-      if (token) headers.set('authorization', `Bearer ${token}`);
+
+    prepareHeaders: (headers) => {
+      const token = auth.getAuthToken();
+      if (token) {
+        headers.set('authorization', `Bearer ${token}`);
+      }
       return headers;
     },
   }),
+
   tagTypes: [
     'Login',
     'CreateUser',
@@ -131,8 +27,12 @@ export const apiSlice = createApi({
     'EmployeesTimesheets',
     'AddTaskToTimesheet',
     'RateTimesheet',
+    'TaskStatus', // ✅ NEW
   ],
+
   endpoints: (build) => ({
+
+    // 🔐 LOGIN
     loginUser: build.mutation({
       query: (payload) => ({
         url: '/login',
@@ -141,6 +41,7 @@ export const apiSlice = createApi({
       }),
     }),
 
+    // 👤 CREATE USER (Admin + Manager)
     createUser: build.mutation({
       query: (payload) => ({
         url: '/create-user',
@@ -149,6 +50,7 @@ export const apiSlice = createApi({
       }),
     }),
 
+    // 📄 CREATE TIMESHEET (Admin + Manager)
     createTimesheet: build.mutation({
       query: (payload) => ({
         url: '/timesheet',
@@ -157,10 +59,12 @@ export const apiSlice = createApi({
       }),
     }),
 
+    // 📄 MY TIMESHEETS
     getMyTimesheets: build.query({
       query: () => '/timesheets',
     }),
 
+    // 🔍 SEARCH MY TIMESHEETS
     findMyTimesheets: build.mutation({
       query: (payload) => ({
         url: '/timesheets',
@@ -169,27 +73,43 @@ export const apiSlice = createApi({
       }),
     }),
 
+    // 📄 TIMESHEET DETAILS
     getTimesheetDetails: build.query({
       query: (id) => `/timesheet/${id}`,
+      providesTags: ['TaskStatus'],
     }),
 
+    // 👥 EMPLOYEES TIMESHEETS
     getEmployeesTimesheets: build.query({
       query: () => '/employees-timesheets',
     }),
 
+    // ➕ ADD TASK (Admin + Manager)
     addTaskToTimesheet: build.mutation({
       query: (payload) => ({
         url: '/task',
         method: 'POST',
         body: payload,
       }),
+      invalidatesTags: ['TaskStatus'],
     }),
 
+    // ✅ UPDATE TASK STATUS (Employee)
+    updateTaskStatus: build.mutation({
+      query: ({ taskId, status }) => ({
+        url: `/task/${taskId}/status`,
+        method: 'PATCH',
+        body: { status },
+      }),
+      invalidatesTags: ['TaskStatus'],
+    }),
+
+    // ⭐ RATE TIMESHEET (Manager)
     rateTimesheet: build.mutation({
-      query: (payload) => ({
-        url: `/rate-timesheet/${payload.timesheetId}`,
+      query: ({ timesheetId, rating }) => ({
+        url: `/rate-timesheet/${timesheetId}`,
         method: 'POST',
-        body: payload,
+        body: { rating },
       }),
     }),
   }),
@@ -204,5 +124,6 @@ export const {
   useGetTimesheetDetailsQuery,
   useGetEmployeesTimesheetsQuery,
   useAddTaskToTimesheetMutation,
+  useUpdateTaskStatusMutation, // ✅ THIS FIXES WHITE SCREEN
   useRateTimesheetMutation,
 } = apiSlice;

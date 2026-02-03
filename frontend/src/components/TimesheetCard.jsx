@@ -1,3 +1,4 @@
+
 import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import Box from '@mui/material/Box';
@@ -14,42 +15,52 @@ const TimesheetCard = ({ _id, projectName, date, employee, rating }) => {
   const navigate = useNavigate();
   const user = useSelector(selectUser);
 
+  const roleId = user?.role?.roleId;
+
+  // ✅ Admin (0) & Manager (1) only
+  const canAddTask = roleId === 0 || roleId === 1;
+    // (rating !== null || rating === undefined );
+
   return (
     <Box sx={{ minWidth: 275 }}>
-      <Card variant='outlined'>
+      <Card variant="outlined">
         <CardContent>
-          <Typography variant='h5' component='div'>
+          {/* <Typography variant="h5">{projectName}</Typography> */}
+          <Typography variant="h5">{employee?.name}</Typography>
+
+          {/* <Typography color="text.secondary">
+            {employee?.name}
+          </Typography> */}
+          <Typography color="text.secondary">
             {projectName}
           </Typography>
-          <Typography sx={{ mb: 1.5 }} color='text.secondary'>
-            {employee.name}
-          </Typography>
-          <Typography sx={{ fontSize: 14 }} color='text.secondary' gutterBottom>
+
+
+          <Typography fontSize={14} color="text.secondary">
             {new Date(date).toLocaleDateString('en-IN')}
           </Typography>
-          <Stack alignItems='center' direction='row' gap={0.5}>
+
+          <Stack direction="row" alignItems="center" gap={0.5} mt={1}>
             Rating:{' '}
-            {rating || rating === 0 ? (
+            {rating !== null && rating !== undefined ? (
               <>
-                {rating} <StarIcon color='warning' />
+                {rating} <StarIcon color="warning" />
               </>
             ) : (
               'N/A'
             )}
           </Stack>
         </CardContent>
+
         <CardActions>
-          <Button
-            sx={{ flex: 1 }}
-            size='small'
-            onClick={() => navigate(`/timesheet/${_id}`)}
-          >
+          <Button size="small" onClick={() => navigate(`/timesheet/${_id}`)}>
             View
           </Button>
-          {!rating && rating !== 0 && user?._id === employee._id && (
+
+          {canAddTask && (
             <Button
-              sx={{ flex: 1 }}
-              size='small'
+              size="small"
+              variant="contained"
               onClick={() => navigate(`/add-to-timesheet/${_id}`)}
             >
               Add Task

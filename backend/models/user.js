@@ -1,3 +1,5 @@
+
+
 const mongoose = require('mongoose');
 const bcryptjs = require('bcryptjs');
 const jwt = require('jsonwebtoken');
@@ -41,12 +43,7 @@ const userSchema = new Schema(
   { timestamps: true }
 );
 
-/**
- * 🔐 Hash password before save
- * IMPORTANT:
- * - Do NOT use next()
- * - Works for save(), insertMany(), seed
- */
+/* 🔐 Hash password */
 userSchema.pre('save', async function () {
   if (!this.isModified('password')) return;
 
@@ -55,27 +52,24 @@ userSchema.pre('save', async function () {
   this.password = await bcryptjs.hash(this.password, salt);
 });
 
-/**
- * 🔑 Compare password
- */
+/* 🔑 Compare password */
 userSchema.methods.matchPassword = async function (password) {
   return bcryptjs.compare(password, this.password);
 };
 
-/**
- * 🎟️ Generate JWT token
- */
+/* 🎟️ Generate JWT (FIXED) */
 userSchema.methods.generateAuthToken = function () {
-  const SECRET = process.env.SECRET;
-
   const payload = {
     id: this._id,
     name: this.name,
     email: this.email,
-    role: this.role, // ObjectId (safe, no populate needed)
+    role: {
+      roleId: this.role.roleId,
+      roleName: this.role.roleName,
+    },
   };
 
-  return jwt.sign(payload, SECRET, { expiresIn: '1d' });
+  return jwt.sign(payload, process.env.SECRET, { expiresIn: '1d' });
 };
 
 const User = mongoose.model('User', userSchema);
